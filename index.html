@@ -77,7 +77,7 @@
   .jh-cap b{color:var(--hw-l)}
 </style>
 </head>
-<body>
+<body class="light">
 <div class="jh-wrap">
   <h1 class="jh-title">AI 순환 거래 지도: 엔비디아가 중심에 있다.</h1>
   <p class="jh-sub">원 크기는 기업 가치(2026년 7월 27일 기준). 화살표는 돈이 흐르는 방향. 블룸버그 자료를 기초로 슬로우뉴스가 제작.</p>
@@ -89,7 +89,7 @@
     <button id="resetBtn" class="jh-btn">↺ 초기화.</button>
     <span class="jh-spacer">
       <label class="jh-toggle"><input type="checkbox" id="lblToggle"> 금액 라벨 항상 표시.</label>
-      <button id="themeBtn" class="jh-btn">☀ 라이트 모드.</button>
+      <button id="themeBtn" class="jh-btn">☾ 다크 모드.</button>
     </span>
   </div>
   <div class="jh-statleg">
@@ -282,7 +282,7 @@
     m.setAttribute("refX","8.6");m.setAttribute("refY","5");m.setAttribute("markerWidth","6.5");
     m.setAttribute("markerHeight","6.5");m.setAttribute("orient","auto-start-reverse");
     const p=document.createElementNS(NS,"path");p.setAttribute("d","M0 0 L10 5 L0 10 z");
-    p.setAttribute("fill",ARROW_COLORS.dark[t]);
+    p.setAttribute("fill",ARROW_COLORS.light[t]);
     m.appendChild(p);defs.appendChild(m);
     markerPaths[t]=p;
   });
@@ -467,12 +467,17 @@
     svg.classList.toggle("lbl",e.target.checked);
   });
   const themeBtn=document.getElementById("themeBtn");
-  themeBtn.addEventListener("click",()=>{
-    const light=document.body.classList.toggle("light");
+  function setTheme(light){
+    document.body.classList.toggle("light",light);
     themeBtn.textContent=light?"☾ 다크 모드.":"☀ 라이트 모드.";
     const th=light?"light":"dark";
     ["srv","inv","hw"].forEach(t=>markerPaths[t].setAttribute("fill",ARROW_COLORS[th][t]));
+  }
+  themeBtn.addEventListener("click",()=>{
+    setTheme(!document.body.classList.contains("light"));
   });
+  // 임베드용: ?theme=dark 파라미터로 다크 모드 시작 (기본은 라이트)
+  if(new URLSearchParams(location.search).get("theme")==="dark")setTheme(false);
   document.getElementById("resetBtn").addEventListener("click",()=>{
     if(dragLoop){cancelAnimationFrame(dragLoop);dragLoop=null;}
     active.srv=active.inv=active.hw=true;
