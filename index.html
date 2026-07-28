@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 순환 거래 지도: 엔비디아가 중심에 있다</title>
+<style>
+  :root{
+    --srv:#3d6bff; --inv:#00c8d7; --hw:#f0148f;
+    --srv-l:#8fa8ff; --inv-l:#6fe3ec; --hw-l:#ff7cc4;
+    --ink:#f2f0eb; --muted:#9a968e; --bg:#141414; --panel:#1b1b1b; --line:#33302a;
+    --nodefill:#202020; --nodestroke:#8d8d8d; --hubfill:#262626; --hubstroke:#c8c8c8;
+    --pill:#0d0d0d; --nname:#f4f2ee; --nvalc:#b9b4aa;
+    --stage-border:#2c2c2c; --stage1:#1d1d1d; --stage2:#121212;
+  }
+  body.light{
+    --srv:#2b4fd4; --inv:#0097a7; --hw:#d9007d;
+    --srv-l:#2b4fd4; --inv-l:#00838f; --hw-l:#c40b74;
+    --ink:#241c10; --muted:#7a756c; --bg:#fffdf8; --panel:#fff; --line:#e7e0d4;
+    --nodefill:#ffffff; --nodestroke:#a89f8d; --hubfill:#f7f3ea; --hubstroke:#6b6558;
+    --pill:#fffdf8; --nname:#241c10; --nvalc:#6b6558;
+    --stage-border:#efe7d8; --stage1:#fffefb; --stage2:#fff9ee;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);transition:background .2s}
+  .jh-wrap{max-width:1780px;margin:0 auto;font-family:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:var(--ink);background:var(--bg);padding:10px 14px 8px}
+  .jh-title{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1.15;margin:0 2px;display:inline}
+  .jh-sub{font-size:12.5px;color:var(--muted);margin:0 2px;display:inline}
+  .jh-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 2px 6px}
+  .jh-chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13.5px;font-weight:700;cursor:pointer;user-select:none;background:var(--panel);color:var(--ink);transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .jh-chip:hover{border-color:#87817a}
+  .jh-chip .sw{width:24px;height:0;border-top:5px solid;border-radius:4px}
+  .jh-chip.off{opacity:.35;box-shadow:none}
+  .jh-chip[data-t="srv"] .sw{border-color:var(--srv)}
+  .jh-chip[data-t="inv"] .sw{border-color:var(--inv)}
+  .jh-chip[data-t="hw"] .sw{border-color:var(--hw)}
+  .jh-toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);opacity:.85;cursor:pointer;user-select:none;font-weight:600}
+  .jh-toggle input{width:16px;height:16px;accent-color:var(--inv)}
+  .jh-btn{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13.5px;font-weight:700;cursor:pointer;background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.2);font-family:inherit}
+  .jh-btn:hover{border-color:#87817a}
+  .jh-btn:active{transform:scale(.97)}
+  .jh-spacer{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .jh-statleg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:0 4px 6px;font-weight:600}
+  .jh-stage{width:100%;border:1px solid var(--stage-border);border-radius:16px;background:radial-gradient(120% 90% at 50% 0%,var(--stage1) 0%,var(--stage2) 100%);touch-action:none;overflow:hidden}
+  body.wide svg{display:block;margin:0 auto;width:100%;height:calc(100vh - 178px);min-height:320px}
+  body.tall svg{display:block;margin:0 auto;width:100%;height:auto}
+  .edge{fill:none;stroke-linecap:round;opacity:.82;transition:opacity .15s,stroke-width .15s}
+  .edge.srv{stroke:var(--srv);stroke-width:2.1}
+  .edge.inv{stroke:var(--inv);stroke-width:2.1}
+  .edge.hw{stroke:var(--hw);stroke-width:2.1}
+  .lpill{fill:var(--pill);opacity:0;rx:9;transition:opacity .15s}
+  .elabel{font-size:12.5px;font-weight:700;text-anchor:middle;dominant-baseline:central;opacity:0;transition:opacity .15s}
+  .elabel.srv{fill:var(--srv-l)}.elabel.inv{fill:var(--inv-l)}.elabel.hw{fill:var(--hw-l)}
+  svg.lbl .lpill{opacity:.9}
+  svg.lbl .elabel{opacity:1}
+  .node{cursor:grab}
+  .node:active{cursor:grabbing}
+  .ncircle{fill:var(--nodefill);stroke:var(--nodestroke);stroke-width:1.4}
+  .ncircle.hub{fill:var(--hubfill);stroke:var(--hubstroke);stroke-width:1.8}
+  .nlabel{font-weight:800;text-anchor:middle;dominant-baseline:central;fill:var(--nname)}
+  .nval{font-weight:700;text-anchor:middle;dominant-baseline:central;fill:var(--nvalc)}
+  svg.focus .edge{opacity:.05}
+  svg.focus .lpill{opacity:.03}
+  svg.focus .elabel{opacity:.05}
+  svg.focus .node{opacity:.22}
+  svg.focus .edge.hl{opacity:1;stroke-width:3.4}
+  svg.focus .lpill.hl{opacity:.94}
+  svg.focus .elabel.hl{opacity:1}
+  svg.focus .node.hl{opacity:1}
+  .jh-tip{position:fixed;z-index:60;pointer-events:none;background:#f4f2ee;color:#1c1a16;font-size:13px;line-height:1.55;padding:10px 13px;border-radius:11px;max-width:300px;opacity:0;transition:opacity .12s;box-shadow:0 8px 26px rgba(0,0,0,.5)}
+  .jh-tip b{color:#000;font-size:14.5px}
+  .jh-tip .tt-val{color:#6b6558;font-weight:700}
+  .jh-tip .tt-deal{display:block;margin-top:2px}
+  .jh-tip .tt-deal i{font-style:normal;font-weight:800}
+  .jh-tip .tt-deal i.srv{color:#2b4fd4}.jh-tip .tt-deal i.inv{color:#008b97}.jh-tip .tt-deal i.hw{color:#c40b74}
+  .jh-cap{font-size:11px;color:var(--muted);margin:6px 4px 0;line-height:1.5}
+  .jh-cap b{color:var(--hw-l)}
+</style>
+</head>
+<body>
+<div class="jh-wrap">
+  <h1 class="jh-title">AI 순환 거래 지도: 엔비디아가 중심에 있다.</h1>
+  <p class="jh-sub">원 크기는 기업 가치(2026년 7월 27일 기준). 화살표는 돈이 흐르는 방향. 블룸버그 자료를 기초로 슬로우뉴스가 제작.</p>
+
+  <div class="jh-controls">
+    <span class="jh-chip" data-t="inv"><span class="sw"></span>투자.</span>
+    <span class="jh-chip" data-t="hw"><span class="sw"></span>하드웨어 대금.</span>
+    <span class="jh-chip" data-t="srv"><span class="sw"></span>서비스 대금.</span>
+    <button id="resetBtn" class="jh-btn">↺ 초기화.</button>
+    <span class="jh-spacer">
+      <label class="jh-toggle"><input type="checkbox" id="lblToggle"> 금액 라벨 항상 표시.</label>
+      <button id="themeBtn" class="jh-btn">☀ 라이트 모드.</button>
+    </span>
+  </div>
+  <div class="jh-statleg">
+    <span>원 면적 = 기업 가치·기업 규모.</span>
+    <span>투자 = 투자자 → 피투자사.</span>
+    <span>하드웨어 = 구매자 → 공급사.</span>
+    <span>서비스 = 고객 → 제공사.</span>
+  </div>
+
+  <div class="jh-stage">
+    <svg id="svg" viewBox="0 0 1680 860" role="img" aria-label="AI 빅테크 순환 거래 관계도"></svg>
+  </div>
+  <p class="jh-cap">노드를 <b>드래그</b>하면 연결선이 함께 움직이고, 노드에 <b>마우스를 올리면</b> 연결된 거래만 강조됩니다. 스페이스X는 2026년 2월 xAI와 합병. 거래 쌍·유형(63건)은 블룸버그 그래픽의 데이터를 그대로 옮겼고, 화살표는 돈이 흐르는 방향으로 슬로우뉴스가 통일했다(스페이스X 관련 하드웨어 거래 등 조건 비공개 딜의 방향은 추정). 금액이 비공개인 딜은 라벨을 생략. 자료: Bloomberg "AI Circular Deals: How Microsoft, OpenAI and Nvidia Keep Paying Each Other"(2026.7.27 업데이트), 각 사 발표 종합.</p>
+</div>
+<div class="jh-tip" id="tip"></div>
+
+<script>
+(function(){
+  // 밸류에이션·거래 데이터: 블룸버그 "AI Circular Deals" 그래픽(2026.7.27 업데이트) 임베디드 데이터에서 추출.
+  // r ∝ √기업가치 (원 면적 = 기업 가치).
+  const NODES = {
+    "마이크로소프트":{r:71,val:"2.8조달러"},
+    "브로드컴":{r:57,val:"1.8조달러"},
+    "구글":{r:84,val:"3.9조달러"},
+    "앰비언스 헬스케어":{r:5,val:"10억달러"},
+    "커서":{r:10,val:"600억달러"},
+    "SB에너지":{r:5,val:"비공개"},
+    "하비":{r:5,val:"110억달러"},
+    "오픈AI":{r:78,val:"8520억달러",hub:true},
+    "소프트뱅크":{r:18,val:"1860억달러"},
+    "오라클":{r:24,val:"3310억달러"},
+    "앤트로픽":{r:63,val:"9650억달러"},
+    "네비우스":{r:9,val:"480억달러"},
+    "피겨AI":{r:9,val:"390억달러"},
+    "코어위브":{r:9,val:"390억달러"},
+    "네이버":{r:7,val:"250억달러"},
+    "세이프 슈퍼인텔리전스":{r:8,val:"320억달러"},
+    "엔비디아":{r:95,val:"5조달러",hub:true},
+    "코닝":{r:15,val:"1260억달러"},
+    "미스트랄":{r:5,val:"140억달러"},
+    "인텔":{r:29,val:"4660억달러"},
+    "AMD":{r:39,val:"8510억달러"},
+    "엔스케일":{r:5,val:"150억달러"},
+    "스페이스X":{r:52,val:"1.5조달러"},
+    "아마존":{r:67,val:"2.5조달러"}
+  };
+  // 화면 비율에 따라 가로(wide)/세로(tall) 레이아웃 자동 전환.
+  const LAYOUTS = {
+    wide:{w:1680,h:860,pos:{
+      "마이크로소프트":[170,150],"브로드컴":[860,112],"구글":[1462,152],
+      "앰비언스 헬스케어":[610,180],"커서":[742,205],"SB에너지":[388,242],"하비":[992,225],
+      "오픈AI":[630,345],"소프트뱅크":[128,362],"오라클":[330,452],"앤트로픽":[1180,330],
+      "네비우스":[452,548],"피겨AI":[405,612],"코어위브":[363,678],"네이버":[328,742],
+      "세이프 슈퍼인텔리전스":[308,802],"엔비디아":[840,560],"코닝":[1312,520],"미스트랄":[1362,592],
+      "인텔":[180,762],"AMD":[1240,682],"엔스케일":[1062,762],"스페이스X":[760,772],"아마존":[1500,732]
+    }},
+    tall:{w:1020,h:1470,pos:{
+      "마이크로소프트":[96,130],"브로드컴":[477,124],"구글":[918,130],
+      "앰비언스 헬스케어":[455,228],"커서":[581,239],"SB에너지":[337,330],"하비":[738,339],
+      "오픈AI":[542,388],"소프트뱅크":[100,502],"오라클":[283,514],"앤트로픽":[858,534],
+      "네비우스":[194,617],"피겨AI":[165,679],"코어위브":[143,743],"네이버":[140,802],
+      "세이프 슈퍼인텔리전스":[152,858],"엔비디아":[511,810],"코닝":[876,794],"미스트랄":[870,872],
+      "인텔":[191,990],"AMD":[797,1029],"엔스케일":[668,1139],"스페이스X":[446,1170],"아마존":[930,1382]
+    }}
+  };
+  // ty: inv(투자, 투자자→피투자사) / hw(하드웨어 대금, 구매자→공급사) / srv(서비스 대금, 고객→제공사)
+  // 거래 쌍·유형은 블룸버그 임베디드 데이터(총 63건) 그대로. 화살표 방향은 돈이 흐르는 방향으로 통일.
+  const EDGES = [
+    // ── 투자 (28건)
+    {s:"마이크로소프트",t:"오픈AI",ty:"inv",l:"지분 약 27%"},
+    {s:"소프트뱅크",t:"오픈AI",ty:"inv",l:"300억달러+"},
+    {s:"엔비디아",t:"오픈AI",ty:"inv",l:"최대 1000억달러"},
+    {s:"아마존",t:"오픈AI",ty:"inv",l:""},
+    {s:"구글",t:"오픈AI",ty:"inv",l:""},
+    {s:"엔비디아",t:"앤트로픽",ty:"inv",l:"최대 100억달러"},
+    {s:"마이크로소프트",t:"앤트로픽",ty:"inv",l:"최대 50억달러"},
+    {s:"구글",t:"앤트로픽",ty:"inv",l:"지분 약 14%"},
+    {s:"아마존",t:"앤트로픽",ty:"inv",l:"80억달러"},
+    {s:"AMD",t:"앤트로픽",ty:"inv",l:""},
+    {s:"브로드컴",t:"앤트로픽",ty:"inv",l:""},
+    {s:"엔비디아",t:"인텔",ty:"inv",l:"50억달러·지분 4%"},
+    {s:"엔비디아",t:"코어위브",ty:"inv",l:"지분 약 7%"},
+    {s:"엔비디아",t:"네비우스",ty:"inv",l:""},
+    {s:"엔비디아",t:"피겨AI",ty:"inv",l:""},
+    {s:"엔비디아",t:"미스트랄",ty:"inv",l:""},
+    {s:"엔비디아",t:"엔스케일",ty:"inv",l:""},
+    {s:"엔비디아",t:"스페이스X",ty:"inv",l:"xAI 라운드 참여"},
+    {s:"엔비디아",t:"네이버",ty:"inv",l:""},
+    {s:"엔비디아",t:"세이프 슈퍼인텔리전스",ty:"inv",l:""},
+    {s:"엔비디아",t:"코닝",ty:"inv",l:""},
+    {s:"오픈AI",t:"AMD",ty:"inv",l:"워런트 최대 1.6억주"},
+    {s:"오픈AI",t:"앰비언스 헬스케어",ty:"inv",l:""},
+    {s:"오픈AI",t:"하비",ty:"inv",l:""},
+    {s:"오픈AI",t:"커서",ty:"inv",l:""},
+    {s:"오픈AI",t:"피겨AI",ty:"inv",l:""},
+    {s:"오픈AI",t:"SB에너지",ty:"inv",l:""},
+    {s:"소프트뱅크",t:"SB에너지",ty:"inv",l:""},
+    // ── 하드웨어 대금 (19건, 구매자→공급사)
+    {s:"오픈AI",t:"엔비디아",ty:"hw",l:"GPU 구매"},
+    {s:"오픈AI",t:"AMD",ty:"hw",l:"GPU 6GW"},
+    {s:"마이크로소프트",t:"엔비디아",ty:"hw",l:"GPU 구매"},
+    {s:"구글",t:"엔비디아",ty:"hw",l:"GPU 구매"},
+    {s:"아마존",t:"엔비디아",ty:"hw",l:"GPU 구매"},
+    {s:"오라클",t:"엔비디아",ty:"hw",l:"수백억달러 칩 구매"},
+    {s:"앤트로픽",t:"엔비디아",ty:"hw",l:"1GW 규모"},
+    {s:"앤트로픽",t:"구글",ty:"hw",l:"TPU 최대 100만개"},
+    {s:"앤트로픽",t:"AMD",ty:"hw",l:""},
+    {s:"구글",t:"브로드컴",ty:"hw",l:"TPU 생산"},
+    {s:"코어위브",t:"엔비디아",ty:"hw",l:"GPU 구매"},
+    {s:"스페이스X",t:"엔비디아",ty:"hw",l:"GPU 구매"},
+    {s:"네비우스",t:"엔비디아",ty:"hw",l:""},
+    {s:"엔스케일",t:"엔비디아",ty:"hw",l:""},
+    {s:"엔스케일",t:"AMD",ty:"hw",l:""},
+    {s:"미스트랄",t:"엔비디아",ty:"hw",l:""},
+    {s:"엔비디아",t:"코닝",ty:"hw",l:"광섬유 구매"},
+    {s:"앤트로픽",t:"스페이스X",ty:"hw",l:""},
+    {s:"구글",t:"스페이스X",ty:"hw",l:""},
+    // ── 서비스 대금 (16건, 고객→제공사)
+    {s:"오픈AI",t:"마이크로소프트",ty:"srv",l:"애저 2500억달러"},
+    {s:"오픈AI",t:"오라클",ty:"srv",l:"3000억달러/5년"},
+    {s:"오픈AI",t:"코어위브",ty:"srv",l:"224억달러"},
+    {s:"오픈AI",t:"구글",ty:"srv",l:"클라우드 이용"},
+    {s:"오픈AI",t:"아마존",ty:"srv",l:"AWS 380억달러"},
+    {s:"오픈AI",t:"엔스케일",ty:"srv",l:"GPU 임차"},
+    {s:"앤트로픽",t:"마이크로소프트",ty:"srv",l:"애저 300억달러"},
+    {s:"앤트로픽",t:"아마존",ty:"srv",l:"AWS 주력"},
+    {s:"앤트로픽",t:"구글",ty:"srv",l:"클라우드 이용"},
+    {s:"마이크로소프트",t:"네비우스",ty:"srv",l:"GPU 임차 174억달러"},
+    {s:"마이크로소프트",t:"코어위브",ty:"srv",l:"GPU 임차"},
+    {s:"엔비디아",t:"코어위브",ty:"srv",l:"용량 매입 보증 63억달러"},
+    {s:"앰비언스 헬스케어",t:"오픈AI",ty:"srv",l:"모델 이용"},
+    {s:"하비",t:"오픈AI",ty:"srv",l:"모델 이용"},
+    {s:"커서",t:"오픈AI",ty:"srv",l:"모델 이용"},
+    {s:"피겨AI",t:"오픈AI",ty:"srv",l:"모델 이용"}
+  ];
+  const TYNAME={inv:"투자",hw:"하드웨어",srv:"서비스"};
+  const ARROW_COLORS={
+    dark:{srv:"#3d6bff",inv:"#00c8d7",hw:"#f0148f"},
+    light:{srv:"#2b4fd4",inv:"#0097a7",hw:"#d9007d"}
+  };
+
+  const svg=document.getElementById("svg");
+  const NS="http://www.w3.org/2000/svg";
+  const tip=document.getElementById("tip");
+  const active={srv:true,inv:true,hw:true};
+  let VBW=1680,VBH=860;const PAD=10;
+  let raf=null,dragLoop=null;
+  const clampX=v=>Math.max(PAD,Math.min(VBW-PAD,v));
+  const clampY=v=>Math.max(PAD,Math.min(VBH-PAD,v));
+  function vizNeighbors(k){
+    const out=[],seen2={};
+    EDGES.forEach(e=>{
+      if(!active[e.ty])return;
+      let o=null;if(e.s===k)o=e.t;else if(e.t===k)o=e.s;
+      if(o&&!seen2[o]){seen2[o]=1;out.push(NODES[o]);}
+    });
+    return out;
+  }
+  function springBack(list){
+    if(raf)cancelAnimationFrame(raf);
+    let t0=null;const dur=360;
+    const arr=list.map(o=>({n:o.n,fx:o.n.x,fy:o.n.y,tx:o.tx,ty:o.ty}));
+    function step(now){
+      if(t0===null)t0=now;
+      const k=Math.min(1,(now-t0)/dur),c1=1.8,c3=c1+1,e=1+c3*Math.pow(k-1,3)+c1*Math.pow(k-1,2);
+      arr.forEach(o=>{o.n.x=o.fx+(o.tx-o.fx)*e;o.n.y=o.fy+(o.ty-o.fy)*e;});
+      place();
+      raf=(k<1)?requestAnimationFrame(step):null;
+    }
+    raf=requestAnimationFrame(step);
+  }
+
+  let MODE="";
+  function layoutMode(){return (window.innerWidth>window.innerHeight&&window.innerWidth>=760)?"wide":"tall";}
+  function applyLayout(m){
+    MODE=m;const L=LAYOUTS[m];
+    VBW=L.w;VBH=L.h;
+    svg.setAttribute("viewBox","0 0 "+L.w+" "+L.h);
+    document.body.classList.toggle("wide",m==="wide");
+    document.body.classList.toggle("tall",m==="tall");
+    for(const k in NODES){const n=NODES[k];const p=L.pos[k];n.x=p[0];n.y=p[1];n._ix=p[0];n._iy=p[1];}
+  }
+  applyLayout(layoutMode());
+
+  const defs=document.createElementNS(NS,"defs");
+  const markerPaths={};
+  ["srv","inv","hw"].forEach(t=>{
+    const m=document.createElementNS(NS,"marker");
+    m.setAttribute("id","arw-"+t);m.setAttribute("viewBox","0 0 10 10");
+    m.setAttribute("refX","8.6");m.setAttribute("refY","5");m.setAttribute("markerWidth","6.5");
+    m.setAttribute("markerHeight","6.5");m.setAttribute("orient","auto-start-reverse");
+    const p=document.createElementNS(NS,"path");p.setAttribute("d","M0 0 L10 5 L0 10 z");
+    p.setAttribute("fill",ARROW_COLORS.dark[t]);
+    m.appendChild(p);defs.appendChild(m);
+    markerPaths[t]=p;
+  });
+  svg.appendChild(defs);
+
+  const gEdges=document.createElementNS(NS,"g");
+  const gLabels=document.createElementNS(NS,"g");
+  const gNodes=document.createElementNS(NS,"g");
+  svg.appendChild(gEdges);svg.appendChild(gLabels);svg.appendChild(gNodes);
+
+  const seen={},cnt={};
+  EDGES.forEach(e=>{const k=[e.s,e.t].sort().join("|");cnt[k]=(cnt[k]||0)+1;});
+  EDGES.forEach(e=>{const k=[e.s,e.t].sort().join("|");seen[k]=(seen[k]||0);e._cnt=cnt[k];e._i=seen[k];seen[k]++;});
+
+  function boundary(n,tx,ty){
+    const dx=tx-n.x,dy=ty-n.y;const d=Math.hypot(dx,dy)||1;
+    return [n.x+dx/d*n.r,n.y+dy/d*n.r];
+  }
+  function geom(e){
+    const a=NODES[e.s],b=NODES[e.t];
+    let ux=b.x-a.x,uy=b.y-a.y;const len=Math.hypot(ux,uy)||1;ux/=len;uy/=len;
+    const px=-uy,py=ux;
+    const base=Math.max(24,Math.min(len*0.15,90));
+    const off=base+(e._i-(e._cnt-1)/2)*30;
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    const cx=mx+px*off,cy=my+py*off;
+    const [sx,sy]=boundary(a,cx,cy);
+    const [tx,ty]=boundary(b,cx,cy);
+    const lx=0.25*sx+0.5*cx+0.25*tx,ly=0.25*sy+0.5*cy+0.25*ty;
+    return {d:`M${sx.toFixed(1)} ${sy.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}`,lx,ly};
+  }
+
+  const nodeEls={};
+  EDGES.forEach(e=>{
+    const p=document.createElementNS(NS,"path");
+    p.setAttribute("class","edge "+e.ty);p.setAttribute("marker-end","url(#arw-"+e.ty+")");
+    gEdges.appendChild(p);
+    const hasL=!!e.l;
+    let r=null,t=null;
+    if(hasL){
+      r=document.createElementNS(NS,"rect");
+      r.setAttribute("class","lpill");r.setAttribute("rx","9");r.setAttribute("height","21");
+      const w=e.l.length*10.4+16;r.setAttribute("width",w);r._w=w;
+      gLabels.appendChild(r);
+      t=document.createElementNS(NS,"text");
+      t.setAttribute("class","elabel "+e.ty);t.textContent=e.l;
+      gLabels.appendChild(t);
+    }
+    e._p=p;e._r=r;e._t=t;
+  });
+
+  for(const k in NODES){
+    const n=NODES[k];
+    const g=document.createElementNS(NS,"g");g.setAttribute("class","node");g.dataset.name=k;
+    const c=document.createElementNS(NS,"circle");
+    c.setAttribute("class","ncircle"+(n.hub?" hub":""));c.setAttribute("r",n.r);
+    g.appendChild(c);n._shape=c;
+    const tx=document.createElementNS(NS,"text");
+    tx.setAttribute("class","nlabel");
+    const big=n.r>=24;
+    tx.style.fontSize=(n.r>=60?"19px":big?"15.5px":"13px");
+    tx.textContent=k;
+    g.appendChild(tx);n._txt=tx;
+    if(n.r>=28&&n.val){
+      const tv=document.createElementNS(NS,"text");
+      tv.setAttribute("class","nval");
+      tv.style.fontSize=(n.r>=60?"15px":n.r>=34?"12.5px":"10.5px");
+      tv.textContent=n.val;
+      g.appendChild(tv);n._val=tv;
+    }
+    gNodes.appendChild(g);nodeEls[k]=g;n._g=g;
+    g.addEventListener("mouseenter",()=>focusNode(k));
+    g.addEventListener("mouseleave",()=>{unfocus();hideTip();});
+    g.addEventListener("mousemove",ev=>showTip(ev,k));
+    enableDrag(g,n);
+  }
+
+  function place(){
+    for(const k in NODES){
+      const n=NODES[k];
+      n._shape.setAttribute("cx",n.x);n._shape.setAttribute("cy",n.y);
+      const big=n.r>=24;
+      if(big){
+        n._txt.setAttribute("x",n.x);
+        n._txt.setAttribute("y",n._val?n.y-9:n.y);
+        if(n._val){n._val.setAttribute("x",n.x);n._val.setAttribute("y",n.y+11);}
+      }else{
+        n._txt.setAttribute("x",n.x);n._txt.setAttribute("y",n.y+n.r+13);
+      }
+    }
+    EDGES.forEach(e=>{
+      const vis=active[e.ty];
+      const disp=vis?"":"none";
+      e._p.style.display=disp;
+      if(e._r){e._r.style.display=disp;e._t.style.display=disp;}
+      if(!vis)return;
+      const gg=geom(e);
+      e._p.setAttribute("d",gg.d);
+      if(e._r){
+        e._t.setAttribute("x",gg.lx);e._t.setAttribute("y",gg.ly);
+        e._r.setAttribute("x",gg.lx-e._r._w/2);e._r.setAttribute("y",gg.ly-10.5);
+      }
+    });
+  }
+  place();
+
+  function focusNode(k){
+    svg.classList.add("focus");
+    const nb=new Set([k]);
+    EDGES.forEach(e=>{
+      if((e.s===k||e.t===k)&&e._p.style.display!=="none"){
+        e._p.classList.add("hl");
+        if(e._t){e._t.classList.add("hl");e._r.classList.add("hl");}
+        nb.add(e.s);nb.add(e.t);}
+    });
+    nb.forEach(nm=>nodeEls[nm]&&nodeEls[nm].classList.add("hl"));
+  }
+  function unfocus(){
+    svg.classList.remove("focus");
+    EDGES.forEach(e=>{e._p.classList.remove("hl");if(e._t){e._t.classList.remove("hl");e._r.classList.remove("hl");}});
+    for(const k in nodeEls)nodeEls[k].classList.remove("hl");
+  }
+
+  function showTip(ev,k){
+    const n=NODES[k];
+    let h=`<b>${k}</b>`;
+    if(n.val)h+=` <span class="tt-val">${n.val}</span>`;
+    EDGES.forEach(e=>{
+      if(!active[e.ty])return;
+      if(e.s!==k&&e.t!==k)return;
+      const outb=e.s===k;
+      const other=outb?e.t:e.s;
+      const amt=e.l?` · ${e.l}`:"";
+      h+=`<span class="tt-deal"><i class="${e.ty}">${TYNAME[e.ty]}</i> ${outb?"→":"←"} ${other}${amt}</span>`;
+    });
+    tip.innerHTML=h;tip.style.opacity="1";
+    let x=ev.clientX+16,y=ev.clientY+16;
+    if(x+310>window.innerWidth)x=ev.clientX-310;
+    const th=tip.offsetHeight+20;
+    if(y+th>window.innerHeight)y=Math.max(8,window.innerHeight-th);
+    tip.style.left=x+"px";tip.style.top=y+"px";
+  }
+  function hideTip(){tip.style.opacity="0";}
+
+  function enableDrag(g,n){
+    let on=false,sx,sy,ox,oy,tx,ty,nbrs=[];
+    const F=0.36,NSP=0.16,DSP=0.62,EPS=0.25;
+    function pt(ev){const r=svg.getBoundingClientRect();const vb=svg.viewBox.baseVal;
+      const sc=Math.min(r.width/vb.width,r.height/vb.height);
+      const ox0=(r.width-vb.width*sc)/2,oy0=(r.height-vb.height*sc)/2;
+      return [(ev.clientX-r.left-ox0)/sc,(ev.clientY-r.top-oy0)/sc];}
+    function tick(){
+      n.x+=(tx-n.x)*DSP;n.y+=(ty-n.y)*DSP;
+      const ddx=n.x-ox,ddy=n.y-oy;
+      let moving=Math.abs(tx-n.x)+Math.abs(ty-n.y)>EPS;
+      nbrs.forEach(o=>{
+        const gx=clampX(o.ox+ddx*F),gy=clampY(o.oy+ddy*F);
+        o.n.x+=(gx-o.n.x)*NSP;o.n.y+=(gy-o.n.y)*NSP;
+        if(Math.abs(gx-o.n.x)+Math.abs(gy-o.n.y)>EPS)moving=true;
+      });
+      place();
+      dragLoop=(on||moving)?requestAnimationFrame(tick):null;
+    }
+    g.addEventListener("pointerdown",ev=>{
+      if(raf){cancelAnimationFrame(raf);raf=null;}
+      if(dragLoop){cancelAnimationFrame(dragLoop);dragLoop=null;}
+      on=true;g.setPointerCapture(ev.pointerId);
+      const[mx,my]=pt(ev);sx=mx;sy=my;ox=n.x;oy=n.y;tx=n.x;ty=n.y;
+      nbrs=vizNeighbors(g.dataset.name).filter(o=>o!==n).map(nn=>({n:nn,ox:nn.x,oy:nn.y}));
+      hideTip();ev.preventDefault();
+      dragLoop=requestAnimationFrame(tick);});
+    g.addEventListener("pointermove",ev=>{if(!on)return;const[mx,my]=pt(ev);
+      tx=clampX(ox+(mx-sx));ty=clampY(oy+(my-sy));});
+    function end(ev){if(!on)return;on=false;try{g.releasePointerCapture(ev.pointerId);}catch(e){}}
+    g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
+  }
+
+  document.querySelectorAll(".jh-chip").forEach(ch=>{
+    ch.addEventListener("click",()=>{const t=ch.dataset.t;active[t]=!active[t];ch.classList.toggle("off",!active[t]);place();});
+  });
+  document.getElementById("lblToggle").addEventListener("change",e=>{
+    svg.classList.toggle("lbl",e.target.checked);
+  });
+  const themeBtn=document.getElementById("themeBtn");
+  themeBtn.addEventListener("click",()=>{
+    const light=document.body.classList.toggle("light");
+    themeBtn.textContent=light?"☾ 다크 모드.":"☀ 라이트 모드.";
+    const th=light?"light":"dark";
+    ["srv","inv","hw"].forEach(t=>markerPaths[t].setAttribute("fill",ARROW_COLORS[th][t]));
+  });
+  document.getElementById("resetBtn").addEventListener("click",()=>{
+    if(dragLoop){cancelAnimationFrame(dragLoop);dragLoop=null;}
+    active.srv=active.inv=active.hw=true;
+    document.querySelectorAll(".jh-chip").forEach(c=>c.classList.remove("off"));
+    svg.classList.remove("lbl");document.getElementById("lblToggle").checked=false;
+    springBack(Object.keys(NODES).map(k=>({n:NODES[k],tx:NODES[k]._ix,ty:NODES[k]._iy})));
+  });
+  let rsT=null;
+  window.addEventListener("resize",()=>{
+    clearTimeout(rsT);
+    rsT=setTimeout(()=>{
+      const m=layoutMode();
+      if(m!==MODE){
+        if(dragLoop){cancelAnimationFrame(dragLoop);dragLoop=null;}
+        if(raf){cancelAnimationFrame(raf);raf=null;}
+        applyLayout(m);place();
+      }
+    },150);
+  });
+})();
+</script>
+</body>
+</html>
