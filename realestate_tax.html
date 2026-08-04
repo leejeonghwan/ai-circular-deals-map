@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>세제개편안 종부세 비교 — 같은 집, 네 가지 고지서</title>
+<style>
+  :root{
+    --bg:#f7f6f2; --panel:#ffffff; --line:#d9d6cf; --ink:#17202a; --sub:#5c6670;
+    --live:#1f5fa8; --nonres:#c0392b; --multi2:#8a4fa8; --multi3:#5e3a80;
+    --curbar:#b9b5ac; --chip:#efece5;
+  }
+  .dark{
+    --bg:#141a22; --panel:#1c242f; --line:#2b3542; --ink:#f4f2ec; --sub:#94a0ad;
+    --live:#5b9bd5; --nonres:#e4604a; --multi2:#b07cd8; --multi3:#9a6cc8;
+    --curbar:#55606d; --chip:#232d3a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); overflow:hidden;
+    display:flex; flex-direction:column; padding:2.2vh 2.4vw;
+  }
+
+  header{display:flex; justify-content:space-between; align-items:flex-end; flex:0 0 auto; margin-bottom:1.6vh; gap:1vw}
+  .eyebrow{font-size:1.5vh; letter-spacing:.16em; color:var(--sub); font-weight:700; margin-bottom:.5vh}
+  h1{font-size:3.6vh; font-weight:800; letter-spacing:-.02em; line-height:1.15}
+  h1 .a{color:var(--live)}
+  .head-right{display:flex; align-items:flex-end; gap:1.2vw}
+  .basis{text-align:right; font-size:1.6vh; color:var(--sub); line-height:1.5}
+  .basis b{color:var(--ink); font-variant-numeric:tabular-nums}
+  #themeToggle{
+    font:inherit; font-size:1.5vh; font-weight:700; padding:.7vh 1vw; border-radius:99px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer; white-space:nowrap;
+  }
+  #themeToggle:hover{border-color:var(--ink)}
+  #themeToggle:focus-visible{outline:2px solid var(--live); outline-offset:2px}
+
+  .controls{
+    flex:0 0 auto; display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:1.6vw;
+    background:var(--panel); border:1px solid var(--line); border-radius:1.2vh;
+    padding:1.4vh 1.6vw; margin-bottom:1.8vh;
+  }
+  .field label{font-size:1.6vh; font-weight:700; display:block; margin-bottom:.4vh}
+  .field .val{font-size:2vh; font-weight:800; font-variant-numeric:tabular-nums; float:right}
+  input[type=range]{width:100%; accent-color:var(--ink); height:3.2vh}
+  input[type=range]:focus-visible{outline:2px solid var(--live); outline-offset:2px; border-radius:4px}
+  .presets{display:flex; gap:.5vw; margin-top:.6vh}
+  .presets button{
+    font:inherit; font-size:1.4vh; font-weight:600; padding:.5vh .9vw; border-radius:99px;
+    border:1px solid var(--line); background:var(--chip); color:var(--sub); cursor:pointer;
+  }
+  .presets button:hover,.presets button:focus-visible{color:var(--ink); border-color:var(--ink); outline:none}
+
+  .grid{flex:1 1 auto; min-height:0; display:grid; grid-template-columns:repeat(4,1fr); gap:1.4vw}
+  .notice{
+    background:var(--panel); border:1px solid var(--line);
+    border-top:3px dashed var(--line); border-radius:0 0 1.4vh 1.4vh;
+    padding:1.6vh 1.2vw; position:relative; display:flex; flex-direction:column; min-height:0;
+  }
+  .notice::before{content:""; position:absolute; top:-3px; left:0; right:0; height:.7vh; background:var(--c)}
+  .n-live{--c:var(--live)} .n-nonres{--c:var(--nonres)} .n-2{--c:var(--multi2)} .n-3{--c:var(--multi3)}
+  .n-title{font-size:2vh; font-weight:800; display:flex; align-items:center; gap:.5vw}
+  .n-title .dot{width:1.2vh; height:1.2vh; border-radius:50%; background:var(--c); flex:none}
+  .n-title small{font-weight:600; color:var(--sub); font-size:1.4vh}
+  .n-sub{font-size:1.4vh; color:var(--sub); margin-top:.3vh}
+
+  .chart{flex:1 1 auto; min-height:0; display:flex; align-items:flex-end; justify-content:center; gap:2vw; padding:1.6vh 0 .6vh}
+  .col{display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; width:34%}
+  .col .amt{font-size:1.7vh; font-weight:700; font-variant-numeric:tabular-nums; margin-bottom:.6vh; white-space:nowrap}
+  .col.cur .amt{color:var(--sub)}
+  .col.new .amt{color:var(--c); font-size:1.9vh; font-weight:800}
+  .col .stick{width:100%; border-radius:.6vh .6vh 0 0; min-height:2px}
+  .col.cur .stick{background:var(--curbar)}
+  .col.new .stick{background:var(--c)}
+  .col .tag{font-size:1.3vh; color:var(--sub); margin-top:.6vh}
+
+  .foot-row{flex:0 0 auto; display:flex; justify-content:space-between; align-items:center; gap:1vw; margin-top:.4vh}
+  .delta{font-size:2vh; font-weight:800; color:var(--c); font-variant-numeric:tabular-nums}
+  .cap{font-size:1.3vh; color:var(--sub); text-align:right; visibility:hidden}
+  .cap.on{visibility:visible}
+  .cap b{color:var(--nonres)}
+
+  footer{flex:0 0 auto; font-size:1.4vh; color:var(--sub); margin-top:1.6vh; display:flex; justify-content:space-between; gap:2vw}
+  @media (prefers-reduced-motion: no-preference){ .stick{transition:height .35s ease} }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="eyebrow">끝내주는 경제 · 2026 세제개편안</div>
+      <h1>같은 집인데 고지서는 <span class="a">네 가지</span></h1>
+    </div>
+    <div class="head-right">
+      <div class="basis">
+        종합부동산세 · 현행(2026) vs 개편 완성(2028)<br>
+        공시가격 <b><span id="priceVal">28</span>억</b> · 시가 약 <b><span id="marketVal">40</span>억</b>
+      </div>
+      <button id="themeToggle" aria-pressed="false" aria-label="다크 모드로 전환">다크</button>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="계산 조건">
+    <div class="field">
+      <label for="price">공시가격 (다주택은 합산) <span class="val"><span id="priceVal2">28</span>억</span></label>
+      <input type="range" id="price" min="8" max="100" step="1" value="28">
+      <div class="presets" role="group">
+        <button data-p="14">14억</button>
+        <button data-p="28">28억 · 재경부 사례</button>
+        <button data-p="50">50억</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="ratio">다주택 거주주택 비중 <span class="val"><span id="ratioVal">30</span>%</span></label>
+      <input type="range" id="ratio" min="0" max="100" step="5" value="30">
+    </div>
+    <div class="field">
+      <label for="credit">고령·장기 세액공제 <span class="val"><span id="creditVal">0</span>%</span></label>
+      <input type="range" id="credit" min="0" max="80" step="10" value="0">
+    </div>
+  </section>
+
+  <div class="grid">
+    <article class="notice n-live" id="card-live">
+      <div class="n-title"><span class="dot"></span>1주택 · 실거주</div>
+      <div class="n-sub">공제 12→14억 · 공정가액 70%</div>
+      <div class="chart">
+        <div class="col cur"><span class="amt cur-amt">—</span><div class="stick"></div><span class="tag">현행</span></div>
+        <div class="col new"><span class="amt new-amt">—</span><div class="stick"></div><span class="tag">개편</span></div>
+      </div>
+      <div class="foot-row"><span class="delta">—</span><span class="cap">상한 <b>200%</b> 단계 반영</span></div>
+    </article>
+
+    <article class="notice n-nonres" id="card-nonres">
+      <div class="n-title"><span class="dot"></span>1주택 · 비거주</div>
+      <div class="n-sub">공제 12→9억 · 세액공제 배제 가정</div>
+      <div class="chart">
+        <div class="col cur"><span class="amt cur-amt">—</span><div class="stick"></div><span class="tag">현행</span></div>
+        <div class="col new"><span class="amt new-amt">—</span><div class="stick"></div><span class="tag">개편</span></div>
+      </div>
+      <div class="foot-row"><span class="delta">—</span><span class="cap">상한 <b>200%</b> 단계 반영</span></div>
+    </article>
+
+    <article class="notice n-2" id="card-two">
+      <div class="n-title"><span class="dot"></span>2주택 <small>조정지역</small></div>
+      <div class="n-sub">공제 9억→4억+α · 공정가액 80%</div>
+      <div class="chart">
+        <div class="col cur"><span class="amt cur-amt">—</span><div class="stick"></div><span class="tag">현행</span></div>
+        <div class="col new"><span class="amt new-amt">—</span><div class="stick"></div><span class="tag">개편</span></div>
+      </div>
+      <div class="foot-row"><span class="delta">—</span><span class="cap">상한 <b>200%</b> 단계 반영</span></div>
+    </article>
+
+    <article class="notice n-3" id="card-three">
+      <div class="n-title"><span class="dot"></span>3주택 이상</div>
+      <div class="n-sub">현행 중과세율 → 가액 기준 일원화</div>
+      <div class="chart">
+        <div class="col cur"><span class="amt cur-amt">—</span><div class="stick"></div><span class="tag">현행</span></div>
+        <div class="col new"><span class="amt new-amt">—</span><div class="stick"></div><span class="tag">개편</span></div>
+      </div>
+      <div class="foot-row"><span class="delta">—</span><span class="cap">상한 <b>200%</b> 단계 반영</span></div>
+    </article>
+  </div>
+
+  <footer>
+    <span>약식 계산·참고용 — 종부세만 표시(재산세·농특세 별도), 2·3주택은 조정대상지역 가정, 정부안 기준(국회 통과 전)</span>
+    <span>산식: (공시 − 공제) × 공정가액 → 누진세율 − 재산세 중복분 · 재경부 사례와 오차 5% 내외</span>
+  </footer>
+
+<script>
+(function(){
+  var GEN_CUR = [[3,.005],[6,.007],[12,.01],[25,.013],[50,.015],[94,.02],[Infinity,.027]];
+  var HEAVY_CUR = [[3,.005],[6,.007],[12,.01],[25,.02],[50,.03],[94,.04],[Infinity,.05]];
+  var NEW28 = [[3,.005],[6,.007],[12,.013],[25,.02],[50,.03],[94,.04],[Infinity,.05]];
+
+  function prog(base,b){var t=0,p=0;for(var i=0;i<b.length;i++){var c=b[i][0],r=b[i][1];if(base>p){t+=(Math.min(base,c)-p)*r;p=c;}else break;}return t;}
+  function jongbu(pr,ded,fair,br,cr){var base=Math.max(0,(pr-ded))*fair;if(base<=0)return 0;var t=prog(base,br)-base*0.6*0.004;return Math.round(Math.max(0,t)*(1-cr)*10000);}
+  function fmt(m){if(m>=10000){var e=Math.floor(m/10000),n=m%10000;return e+'억'+(n?' '+n.toLocaleString('ko-KR')+'만':'')+'원';}return m.toLocaleString('ko-KR')+'만원';}
+
+  var price=document.getElementById('price'),ratio=document.getElementById('ratio'),credit=document.getElementById('credit');
+
+  function render(){
+    var p=+price.value, r=(+ratio.value)/100, c=(+credit.value)/100;
+    document.getElementById('priceVal').textContent=p;
+    document.getElementById('priceVal2').textContent=p;
+    document.getElementById('marketVal').textContent=Math.round(p/0.7);
+    document.getElementById('ratioVal').textContent=ratio.value;
+    document.getElementById('creditVal').textContent=credit.value;
+
+    function calc(p,r,c){
+      return {
+        live:  {cur:jongbu(p,12,.6,GEN_CUR,c),   nw:jongbu(p,14,.7,NEW28,c)},
+        nonres:{cur:jongbu(p,12,.6,GEN_CUR,c),   nw:jongbu(p, 9,.7,NEW28,0)},
+        two:   {cur:jongbu(p, 9,.6,GEN_CUR,0),   nw:jongbu(p,4+5*r,.8,NEW28,0)},
+        three: {cur:jongbu(p, 9,.6,HEAVY_CUR,0), nw:jongbu(p,4+5*r,.8,NEW28,0)}
+      };
+    }
+    var s=calc(p,r,c), ref=calc(p,0,0);
+    var max=1; Object.keys(ref).forEach(function(k){max=Math.max(max,ref[k].cur,ref[k].nw);});
+
+    var map={live:'card-live',nonres:'card-nonres',two:'card-two',three:'card-three'};
+    Object.keys(map).forEach(function(k){
+      var el=document.getElementById(map[k]), d=s[k];
+      el.querySelector('.cur-amt').textContent=fmt(d.cur);
+      el.querySelector('.new-amt').textContent=fmt(d.nw);
+      el.querySelector('.col.cur .stick').style.height=(d.cur/max*100)+'%';
+      el.querySelector('.col.new .stick').style.height=(d.nw/max*100)+'%';
+      var badge=el.querySelector('.delta');
+      if(d.cur===0&&d.nw===0){badge.textContent='과세 대상 아님';}
+      else if(d.cur===0){badge.textContent='신규 과세';}
+      else{var pct=Math.round((d.nw/d.cur-1)*100);badge.textContent=(pct>=0?'+':'')+pct+'%';}
+      el.querySelector('.cap').classList.toggle('on', d.cur>0&&d.nw>d.cur*2);
+    });
+  }
+
+  var toggle=document.getElementById('themeToggle');
+  toggle.addEventListener('click',function(){
+    var dark=document.documentElement.classList.toggle('dark');
+    toggle.textContent=dark?'라이트':'다크';
+    toggle.setAttribute('aria-pressed',dark);
+    toggle.setAttribute('aria-label',dark?'라이트 모드로 전환':'다크 모드로 전환');
+  });
+
+  [price,ratio,credit].forEach(function(el){el.addEventListener('input',render);});
+  document.querySelectorAll('.presets button').forEach(function(b){
+    b.addEventListener('click',function(){price.value=b.dataset.p;render();});
+  });
+  render();
+})();
+</script>
+</body>
+</html>
